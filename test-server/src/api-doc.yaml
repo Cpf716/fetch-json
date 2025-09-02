@@ -1,0 +1,36 @@
+# Author:  Corey Ferguson
+# Date:    2025 September 2  
+# File:    greeting.service.js
+# Project: fetch-json
+#
+
+openapi: 3.0.2
+info:
+  description: "List of APIs exposed by the test server"
+  version: "1.0.0"
+  title: "Test API Server"
+
+paths:
+  "/greeting":
+    post:
+      summary: Send a greeting
+      operationId: greeting
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - firstName
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+      responses:
+        "200":
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: string
