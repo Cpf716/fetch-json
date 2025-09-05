@@ -106,7 +106,7 @@ namespace fetch {
     }
 
     const char* error::what() const throw() {
-        return this->_text.c_str();
+        return this->_status_text.c_str();
     }
 
     // Non-Member Functions
@@ -195,6 +195,10 @@ namespace fetch {
         // Parse status and status text
         size_t      status = stoi(tokens[1]);
         std::string status_text = tokens[2];
+
+        // Merge status_text
+        for (size_t i = 3; i < tokens.size(); i++)
+            status_text += " " + tokens[i];
 
         // Parse text
         size_t content_length = 0;
