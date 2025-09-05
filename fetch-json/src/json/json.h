@@ -40,6 +40,8 @@ namespace json {
 
         object(const std::vector<object*> values, const enum type type = object_t);
 
+        ~object();
+
         // Member Functions
 
         /**
@@ -56,11 +58,6 @@ namespace json {
          * Delete property
          */
         void                 erase(const std::string key);
-        
-        /**
-         * Deallocate object
-         */
-        void                 free();
 
         /**
          * Return property if it exists, otherwise return NULL

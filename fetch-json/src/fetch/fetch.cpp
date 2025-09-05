@@ -39,8 +39,7 @@ namespace fetch {
     }
 
     response::~response() {
-        if (this->_json != NULL)
-            this->_json->free();
+        delete this->_json;
     }
 
     // Member Functions
