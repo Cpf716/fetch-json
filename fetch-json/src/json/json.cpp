@@ -69,6 +69,11 @@ namespace json {
             this->set(value);
     }
 
+    object::~object() {
+        for (object* value: this->values())
+            delete value;
+    }
+
     // Operators
 
     object* array::iterator::operator*() const {
@@ -360,7 +365,8 @@ namespace json {
     void object::_erase(const size_t index) {
         std::pair<std::string, size_t> key_map = this->_key_map[index];
 
-        this->_values[this->size() + key_map.second]->free();
+        delete this->_values[this->size() + key_map.second];
+        
         this->_values.erase(this->_values.begin() + this->size() + key_map.second);
         this->_key_map.erase(this->_key_map.begin() + index);
 
@@ -437,13 +443,6 @@ namespace json {
         }
     }
 
-    void object::free() {
-        for (object* value: this->values())
-            value->free();
-        
-        delete this;
-    }
-
     object* array::get(const size_t index) {
         return object::get(std::to_string(index));
     }
@@ -504,7 +503,7 @@ namespace json {
         this->_key_map.clear();
         
         for (object* value: this->values())
-            value->free();
+            delete value;
 
         this->_values.clear();
     }
@@ -516,7 +515,7 @@ namespace json {
     object* array::set(const size_t index, object* value) {
         object* tmp = new object({{ "k", std::to_string(index) }, { "t", stringify(value) }});
         
-        value->free();
+        delete value;
         
         value = tmp;
 

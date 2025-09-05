@@ -1,6 +1,6 @@
 //
 //  socket.cpp
-//  socket
+//  fetch-json
 //
 //  Created by Corey Ferguson on 9/3/25.
 //
