@@ -41,6 +41,10 @@ std::string decode(const std::string string) {
 
     // none found
     if (r == len - 2) {
+#if LOGGING
+        std::cout << "Missing terminating '\"' character: (" + string + ")\n";
+#endif
+
         for (size_t i = l; i < len - 2; i++) {
             if (str[i] == '\\' && str[i + 1] == '\"') {
                 for (size_t j = i; j < len - 1; j++)
@@ -340,6 +344,25 @@ int pow2(const int b) {
     return pow(2, ceil(log(b) / log(2)));
 }
 
+void split(std::vector<std::string>& target, const std::string source, const std::string delimeter) {
+    size_t start = 0;
+
+    for (int end = 0; end <= (int)source.length() - (int)delimeter.length(); end++) {
+        size_t index = 0;
+
+        while (index < delimeter.length() && source[end + index] == delimeter[index])
+            index++;
+        
+        if (index == delimeter.length()) {
+            target.push_back(source.substr(start, end - start));
+
+            start = end + index;
+        }
+    }
+    
+    target.push_back(source.substr(start));
+}
+
 void tokens(std::vector<std::string>& target, const std::string source) {
     size_t start = 0;
     
@@ -374,26 +397,11 @@ std::string trim(const std::string string) {
     return string.substr(start, end - start);
 }
 
-std::string uuid() {
-    std::ostringstream              oss;
-    std::random_device              rd;
-    std::mt19937_64                 gen(rd());
-    std::uniform_int_distribution<> uid;
-    
-    for (size_t i = 0; i < 8; i++)
-        oss << std::hex << uid(gen) % 16;
-    
-    oss << "-";
-    
-    for (size_t i = 0; i < 3; i++) {
-        for (size_t j = 0; j < 4; j++)
-            oss << std::hex << uid(gen) % 16;
+std::string trim_end(const std::string string) {
+    size_t end = string.length();
+
+    while (end > 0 && isspace(string[end - 1]))
+        end--;
         
-        oss << "-";
-    }
-    
-    for (size_t i = 0; i < 12; i++)
-        oss << std::hex << uid(gen) % 16;
-    
-    return oss.str();
+    return string.substr(0, end);
 }

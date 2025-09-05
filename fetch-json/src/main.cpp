@@ -12,10 +12,10 @@ using namespace fetch;
 using namespace json;
 using namespace std;
 
-map<string, string> headers = {{ "Content-Type", "application/json" }};
+map<string, string> headers = {{ "content-type", "application/json" }};
 
 int main(int argc, const char * argv[]) {
-    string url = "http://localhost:8080/greeting";
+    string url = "http://localhost:8081/greeting";
     string method = "POST";
     auto   body = new object((vector<object*>) {
         new object("firstName", encode("Corey")),
@@ -23,13 +23,10 @@ int main(int argc, const char * argv[]) {
     });
 
     try {
-        auto response = request(url, method, stringify(body), headers);
+        auto response = request(headers, url, method, stringify(body));
 
         cout << stringify(response.json()) << endl;
     } catch (fetch::error& e) {
-        if (e.text().length())
-            throw runtime_error(e.text());
-
         throw e;
     }
 }

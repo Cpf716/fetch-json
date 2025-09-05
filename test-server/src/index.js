@@ -14,7 +14,7 @@ const { GreetingService } = require('./service/greeting.service'),
 
 // Non-Member Fields
 
-const PORT = 8080;
+const PORT = 8081;
 
 // Non-Member Functions
 
@@ -32,8 +32,7 @@ const main = () => {
             message: err.message ?? "Unknown Error", status: err.status
         };
 
-        Logger.error('ERROR!!!');
-        Logger.error({ ...err, ...result });
+        Logger.error('ERROR:', { ...err, ...result });
 
         res.status(err.status).send(result);  
     }, 
@@ -53,6 +52,7 @@ const main = () => {
 
             res.json(greeting.create(req.body));   
         },
+        ping: (c, req, res) => res.send({ message: "Hello, world!"}),
         notFound: (c, req, res) => res.status(404).json(`Cannot ${req.method} ${req.url}`)
     })
 

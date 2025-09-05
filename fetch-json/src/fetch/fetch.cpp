@@ -11,38 +11,30 @@ namespace fetch {
     // Constructors
 
     error::error(
-        std::string url,
-        std::string method,
         const size_t status,
         const std::string status_text,
         const std::string text,
-        double duration
+        double duration,
+        std::map<std::string, std::string> headers
     ) {
-        this->_url = url;
-        this->_method = method;
         this->_status = status;
         this->_status_text = status_text;
         this->_text = text;
         this->_duration = duration;
+        this->_headers = headers;
     }
 
     response::response(
-        const std::string url,
-        const std::string method,
-        std::map<std::string, std::string> request_headers,
         const size_t status,
         const std::string status_text,
+        std::map<std::string, std::string> headers,
         const std::string text,
-        std::map<std::string, std::string> response_headers,
         double duration
     ) {
-        this->_url = url;
-        this->_method = method;
-        this->_request_headers = request_headers;
         this->_status = status;
         this->_status_text = status_text;
+        this->_headers = headers;
         this->_text = text;
-        this->_response_headers = response_headers;
         this->_duration = duration;
     }
 
@@ -67,27 +59,27 @@ namespace fetch {
         return this->_duration;
     }
 
+    std::string error::get(const std::string key) {
+        return this->_headers[key];
+    }
+
+    std::string response::get(const std::string key) {
+        return this->_headers[key];
+    }
+
+    std::map<std::string, std::string> error::headers() {
+        return this->_headers;
+    }
+
+    std::map<std::string, std::string> response::headers() {
+        return this->_headers;
+    }
+
     json::object* response::json() {
         if (this->_json == NULL)
             this->_json = json::parse(this->text());
 
         return this->_json;
-    }
-
-    std::string error::method() const {
-        return this->_method;
-    }
-
-    std::string response::method() const {
-        return this->_method;
-    }
-
-    std::map<std::string, std::string> response::request_headers() {
-        return this->_request_headers;
-    }
-
-    std::map<std::string, std::string> response::response_headers() {
-        return this->_response_headers;
     }
 
     size_t error::status() const {
@@ -114,150 +106,139 @@ namespace fetch {
         return this->_text;
     }
 
-    std::string error::url() const {
-        return this->_url;
-    }
-
-    std::string response::url() const {
-        return this->_url;
-    }
-
     const char* error::what() const throw() {
-        return this->_status_text.c_str();
+        return this->_text.c_str();
     }
 
     // Non-Member Functions
 
-    response request(const std::string url, const std::string method, const std::string body, std::map<std::string, std::string> headers) {
-        std::stringstream ss("curl -vs -X ");
+    response request(std::map<std::string, std::string>& headers, const std::string url, const std::string method, const std::string body) {
+        // Map start line
+        std::stringstream ss(method + " ");
 
         // Set cursor to the end
         ss.seekp(0, std::ios::end);
 
-        ss << method << " ";
+        // Parse url
+        int start = 0;
 
-        if (body.length())
-            ss << "-d " << encode(body) << " ";
+        while (start < (int)url.length() - 1 && (url[start] != '/' || url[start + 1] != '/'))
+            start++;
+        
+        start = start == url.length() - 1 ? 0 : start + 2;
+
+        size_t end = start;
+
+        while (end < url.length() && url[end] != '/')
+            end++;
+
+        // Path
+        ss << url.substr(end) << " HTTP/1.1\r\n";
+
+        // Map request headers
+        // Override content-length
+        headers.erase("Content-Length");
+        headers.erase("content-length");
 
         for (const auto& [key, value]: headers)
-            ss << "-H " << encode(key + ": " + value) << " ";
+            ss << key << ": " << value << "\r\n";
 
-        // path()
-        std::string response = "/tmp/" + uuid(),
-                    error = "/tmp/" + uuid();
+        // Map body
+        if (body.length()) {
+            headers["content-length"] = std::to_string(body.length());
 
-        ss << url << " ";
-        ss << "> " << response << " 2> " << error;
-
-        // class logger
-        // std::cout << ss.str() << std::endl;
-
-        std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
-    
-        system(ss.str().c_str());
-
-        double duration = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
-
-        ss.str("");
-        ss.clear();
-
-        std::ifstream file(response);
-
-        if (file.is_open()) {
-            ss << file.rdbuf();
-
-            // Perform garbage collection
-            auto free = [&file](const std::string filename) {
-                file.close();
-
-                std::remove(filename.c_str());
-            };
-
-            free(response);
-            
-            std::string text = ss.str();
-
-            ss.str("");
-            ss.clear();
-            
-            file = std::ifstream(error);
-            
-            if (file.is_open()) {
-                // Map request headers
-                std::string str;
-
-                while (getline(file, str) && str[0] != '>')
-                    continue;
-
-                if (file.peek() == EOF) {
-                    free(error);
-
-                    throw fetch::error(url, method, 0, "Unknown Error", "", duration);
-                }
-
-                auto map_headers = [&](std::map<std::string, std::string>& map) {
-                    while (getline(file, str)) {
-                        std::vector<std::string> tokens;
-                        
-                        ::tokens(tokens, str);
-                        
-                        if (tokens.size() == 1)
-                            break;
-                        
-                        for (size_t i = 3; i < tokens.size() - 1; i++)
-                            ss << tokens[i] << " ";
-                        
-                        ss << tokens[tokens.size() - 1];
-                        
-                        std::string value = ss.str();
-                        
-                        map[tokens[1].substr(0, tokens[1].length() - 1)] = is_string_literal(value) ? encode(value) : value;
-                        
-                        ss.str("");
-                        ss.clear();
-                    }
-                };
-
-                std::map<std::string, std::string> request_headers;
-
-                map_headers(request_headers);
-
-                // Map response headers
-                while (getline(file, str) && str[0] != '<')
-                    continue;
-
-                std::vector<std::string> tokens;
-
-                ::tokens(tokens, str);
-                
-                size_t status = stoi(tokens[2]);
-
-                for (size_t i = 3; i < tokens.size(); i++)
-                    ss << tokens[i] << " ";
-
-                std::string status_text = ss.str();
-
-                if (status >= 200 && status < 400) {
-                    ss.str("");
-                    ss.clear();
-
-                    std::map<std::string, std::string> response_headers;
-                    
-                    map_headers(response_headers);
-
-                    free(error);
-                    
-                    return fetch::response(url, method, request_headers, status, status_text, text, response_headers, duration);
-                }
-
-                free(error);
-
-                throw fetch::error(url, method, status, status_text, text, duration);
-            }
-            
-            throw fetch::error(url, method, 0, "Unknown error", std::strerror(errno), duration);
+            ss << "content-length: " << body.length() << "\r\n\r\n";
+            ss << body << "\r\n";
         }
 
-        throw fetch::error(url, method, 0, "Unknown error", std::strerror(errno), duration);
+#if LOGGING
+       std::cout << ss.str() << std::endl;
+#endif
+        // Parse host
+        std::vector<std::string> components;
+
+        split(components, url.substr(start, end - start), ":");
+        
+        if (components[0] == "localhost")
+            components[0] = "127.0.0.1";
+
+        std::chrono::time_point<std::chrono::steady_clock> start_time = std::chrono::steady_clock::now();
+    
+        // Perform fetch
+        try {
+            mysocket::tcp_client* client = new mysocket::tcp_client(components[0], parse_int(components[1]));
+
+            client->send(ss.str());
+
+            ss.str(client->recv());
+            // ss.clear();
+        
+#if LOGGING
+        std::cout << ss.str() << std::endl;
+#endif
+
+            client->close();
+        } catch (mysocket::error& e) {
+            throw fetch::error(0, "Unknown error", e.what(), std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count());
+        }
+
+        double duration = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count();
+
+        // Parse response
+        std::string str;
+
+        getline(ss, str);
+
+        std::vector<std::string> tokens;
+
+        ::tokens(tokens, str);
+
+        // Parse status and status text
+        size_t      status = stoi(tokens[1]);
+        std::string status_text = tokens[2];
+
+        // Parse text
+        size_t content_length = 0;
+
+        while (getline(ss, str)) {
+            transform(str.begin(), str.end(), str.begin(), ::tolower);
+
+            std::vector<std::string> pair;
+
+            split(pair, str, ":");
+
+            if (pair[0] == "content-length") {
+                content_length = stoi(pair[1]);
+                break;
+            }
+        }
+
+        str = ss.str();
+
+        std::string text = str.substr(str.length() - content_length);
+
+        // Parse response headers
+        ss.str(str.substr(0, content_length));
+
+        ss.seekp(1, std::ios::beg);
+
+        std::map<std::string, std::string> _headers;
+
+        while (getline(ss, str)) {
+            std::vector<std::string> pair;
+
+            split(pair, str, ":");
+            
+            // EOF
+            if (pair.size() == 1)
+                break;
+
+            _headers[pair[0]] = trim(pair[1]);
+        }
+
+        if (status < 200 || status >= 400)
+            throw fetch::error(status, status_text, text, duration, _headers);
+
+        return fetch::response(status, status_text, _headers, text, duration);
     }
 }

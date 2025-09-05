@@ -34,3 +34,16 @@ paths:
             application/json:
               schema:
                 type: string
+  "/ping":
+    get:
+      operationId: ping
+      responses:
+        "200":
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
