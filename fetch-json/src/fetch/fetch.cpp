@@ -14,13 +14,11 @@ namespace fetch {
         const size_t status,
         const std::string status_text,
         const std::string text,
-        double duration,
         std::map<std::string, std::string> headers
     ) {
         this->_status = status;
         this->_status_text = status_text;
         this->_text = text;
-        this->_duration = duration;
         this->_headers = headers;
     }
 
@@ -28,14 +26,12 @@ namespace fetch {
         const size_t status,
         const std::string status_text,
         std::map<std::string, std::string> headers,
-        const std::string text,
-        double duration
+        const std::string text
     ) {
         this->_status = status;
         this->_status_text = status_text;
         this->_headers = headers;
         this->_text = text;
-        this->_duration = duration;
     }
 
     response::~response() {
@@ -43,20 +39,6 @@ namespace fetch {
     }
 
     // Member Functions
-
-    /**
-     * Return the request duration (milliseconds)
-     */
-    double error::duration() const {
-        return this->_duration;
-    }
-
-    /**
-     * Return the request duration (milliseconds)
-     */
-    double response::duration() const {
-        return this->_duration;
-    }
 
     std::string error::get(const std::string key) {
         return this->_headers[key];
@@ -160,8 +142,6 @@ namespace fetch {
         
         if (components[0] == "localhost")
             components[0] = "127.0.0.1";
-
-        std::chrono::time_point<std::chrono::steady_clock> start_time = std::chrono::steady_clock::now();
     
         // Perform fetch
         try {
@@ -178,10 +158,8 @@ namespace fetch {
 
             client->close();
         } catch (mysocket::error& e) {
-            throw fetch::error(0, "Unknown error", e.what(), std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count());
+            throw fetch::error(0, "Unknown error", e.what());
         }
-
-        double duration = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count();
 
         // Parse response
         std::string str;
@@ -240,8 +218,8 @@ namespace fetch {
         }
 
         if (status < 200 || status >= 400)
-            throw fetch::error(status, status_text, text, duration, _headers);
+            throw fetch::error(status, status_text, text, _headers);
 
-        return fetch::response(status, status_text, _headers, text, duration);
+        return fetch::response(status, status_text, _headers, text);
     }
 }
