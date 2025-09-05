@@ -50,16 +50,13 @@ string              method = "POST";
 auto                body = new object((vector<object*>) {
     new object("firstName", encode("Corey")),
 });
-map<string, string> headers = {{ "Content-Type", "application/json" }};
+map<string, string> headers = {{ "content-type", "application/json" }};
 
 try {
-    auto response = request(url, method, stringify(body), headers);
+    auto response = request(headers, url, method, stringify(body));
 
     cout << stringify(response.json()) << endl;
 } catch (fetch::error& e) {
-    if (e.text().length())
-        throw runtime_error(e.text());
-
     throw e;
 }
 ```
