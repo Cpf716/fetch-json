@@ -8,6 +8,11 @@
 #ifndef util_h
 #define util_h
 
+#define LEVEL_OFF 0
+#define LEVEL_INFO 1
+#define LEVEL_ERROR 2
+#define LOGGING LEVEL_OFF
+
 #include <cassert>
 #include <iostream>
 #include <random>
@@ -67,6 +72,8 @@ double                   parse_number(const std::string value);
  */
 int                      pow2(const int b);
 
+void                     split(std::vector<std::string>& target, const std::string source, const std::string delimeter);
+
 void                     tokens(std::vector<std::string>& target, const std::string source);
 
 /**
@@ -74,6 +81,6 @@ void                     tokens(std::vector<std::string>& target, const std::str
  */
 std::string              trim(const std::string string);
 
-std::string              uuid();
+std::string              trim_end(const std::string string);
 
 #endif /* util_h */
