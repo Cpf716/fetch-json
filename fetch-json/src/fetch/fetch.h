@@ -20,6 +20,9 @@ namespace fetch {
 
         virtual double                             duration() const = 0;
 
+        /**
+         * Return response header
+         */
         virtual std::string                        get(const std::string key) = 0;
 
         virtual std::map<std::string, std::string> headers() = 0;
@@ -46,6 +49,9 @@ namespace fetch {
 
         double                             duration() const;
 
+        /**
+         * Return response header
+         */
         std::string                        get(const std::string key);
 
         std::map<std::string, std::string> headers();
@@ -83,7 +89,10 @@ namespace fetch {
         // Member Functions
 
         double                             duration() const;
-        
+
+        /**
+         * Return response header
+         */
         std::string                        get(const std::string key);
 
         json::object*                      json();
@@ -110,9 +119,9 @@ namespace fetch {
     
     response request(
         std::map<std::string, std::string>& headers,
-        const std::string                    url,
-        const std::string                    method = "GET",
-        const std::string                    body = ""
+        const std::string                   url,
+        const std::string                   method = "GET",
+        const std::string                   body = ""
     );
 }
 

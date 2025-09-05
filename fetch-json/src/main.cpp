@@ -27,6 +27,9 @@ int main(int argc, const char * argv[]) {
 
         cout << stringify(response.json()) << endl;
     } catch (fetch::error& e) {
+        if (e.text().length())
+            throw fetch::error(e.status(), e.text(), e.text(), e.duration(), e.headers());
+        
         throw e;
     }
 }
