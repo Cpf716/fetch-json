@@ -20,12 +20,19 @@
 
 /* Begin PBXFileReference section */
 		9C03391D2E66CAE30007318B /* fetch-json */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "fetch-json"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9C2D53342E6A99E400F1F10E /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
+		9C2D53352E6A99E400F1F10E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9C03391F2E66CAE30007318B /* fetch-json */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "fetch-json";
+			sourceTree = "<group>";
+		};
+		9C2D53332E6A99CC00F1F10E /* test-server */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "test-server";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -44,6 +51,9 @@
 		9C0339142E66CAE20007318B = {
 			isa = PBXGroup;
 			children = (
+				9C2D53342E6A99E400F1F10E /* LICENSE.txt */,
+				9C2D53352E6A99E400F1F10E /* README.md */,
+				9C2D53332E6A99CC00F1F10E /* test-server */,
 				9C03391F2E66CAE30007318B /* fetch-json */,
 				9C03391E2E66CAE30007318B /* Products */,
 			);
@@ -74,6 +84,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				9C03391F2E66CAE30007318B /* fetch-json */,
+				9C2D53332E6A99CC00F1F10E /* test-server */,
 			);
 			name = "fetch-json";
 			packageProductDependencies = (
