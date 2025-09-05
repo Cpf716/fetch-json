@@ -221,9 +221,9 @@ namespace fetch {
         std::string text = str.substr(str.length() - content_length);
 
         // Parse response headers
-        ss.str(str.substr(0, content_length));
-
-        ss.seekp(1, std::ios::beg);
+        ss.str(str.substr(0, str.length() - content_length));
+        
+        getline(ss, str);
 
         std::map<std::string, std::string> _headers;
 

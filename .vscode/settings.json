@@ -57,6 +57,7 @@
         "variant": "cpp",
         "algorithm": "cpp",
         "charconv": "cpp",
-        "csignal": "cpp"
+        "csignal": "cpp",
+        "cassert": "cpp"
     }
 }
