@@ -38,7 +38,7 @@ namespace fetch {
         error(
             const size_t                       status,
             const std::string                  status_text,
-            const std::string                  text,
+            const std::string                  text = "",
             std::map<std::string, std::string> headers = {}
         );
 
@@ -86,9 +86,9 @@ namespace fetch {
          */
         std::string                        get(const std::string key);
 
-        json::object*                      json();
-
         std::map<std::string, std::string> headers();
+
+        json::object*                      json();
 
         size_t                             status() const;
 

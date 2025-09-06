@@ -6,7 +6,7 @@ It combines two existing SDKs <i>fetch</i> and <i>json</i>, enabling C++ develop
 
 # Setup
 1. Open the project in VS Code and navigate to the integrated terminal
-2. Ensure you have Node ^18.0 installed by running `node -v`
+2. Ensure you have Node v18+ installed by running `node -v`
 3. Run `npm install`
 4. Open the project in Xcode
 5. Click Command + B on the keyboard to build the project for the first time

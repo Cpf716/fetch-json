@@ -56,9 +56,13 @@ namespace fetch {
         return this->_headers;
     }
 
-    json::object* response::json() {
-        if (this->_json == NULL)
+    json::object* response::json() {    
+        if (this->_json == NULL) {
+            if (!starts_with(this->_headers["content-type"], "application/json"))
+                throw json::error("undefined");
+
             this->_json = json::parse(this->text());
+        }
 
         return this->_json;
     }
@@ -94,13 +98,16 @@ namespace fetch {
     // Non-Member Functions
 
     response request(std::map<std::string, std::string>& headers, const std::string url, const std::string method, const std::string body) {
-        // Map start line
+        // 1 - Map start line
+        // 1.1 - Map method
         std::stringstream ss(method + " ");
 
         // Set cursor to the end
         ss.seekp(0, std::ios::end);
 
-        // Parse url
+        // 1.2 - Map target (path)
+        // 1.2.1 - Parse url
+        // 1.2.1.1 - Find host
         int start = 0;
 
         while (start < (int)url.length() - 1 && (url[start] != '/' || url[start + 1] != '/'))
@@ -108,49 +115,69 @@ namespace fetch {
         
         start = start == url.length() - 1 ? 0 : start + 2;
 
+        // 1.2.1.2 - Find target
         size_t end = start;
 
         while (end < url.length() && url[end] != '/')
             end++;
 
-        // Path
-        ss << url.substr(end) << " HTTP/1.1\r\n";
+        std::string host = url.substr(start, end - start);
 
-        // Map request headers
-        // Override content-length
-        headers.erase("Content-Length");
-        headers.erase("content-length");
+        // Map target
+        ss << url.substr(end) << " ";
 
-        for (const auto& [key, value]: headers)
+        // 1.3 - Map protocol
+        ss << "HTTP/1.1\r\n";
+
+        // 2 - Map request headers
+        for (const auto& [key, value]: headers) {
+            // Override content-length and host
+            std::string lower_key = tolowers(key);
+
+            if (lower_key == "content-length" || lower_key == "host") {
+                headers.erase(key);
+                continue;
+            }
+
             ss << key << ": " << value << "\r\n";
+        }
 
-        // Map body
+        // 2.1 - Map host
+        headers["host"] = host;
+
+        ss << "host: " << host << "\r\n";
+
+        // 3 - Map body
         if (body.length()) {
             headers["content-length"] = std::to_string(body.length());
 
             ss << "content-length: " << body.length() << "\r\n\r\n";
             ss << body << "\r\n";
-        }
+        } else
+            ss << "\r\n";
 
 #if LOGGING
        std::cout << ss.str() << std::endl;
 #endif
-        // Parse host
+        // 4 - Parse host
         std::vector<std::string> components;
 
-        split(components, url.substr(start, end - start), ":");
+        split(components, host, ":");
+
+        // No port
+        if (components.size() == 1)
+            throw fetch::error(0, "Unknown error");
         
         if (components[0] == "localhost")
             components[0] = "127.0.0.1";
     
-        // Perform fetch
+        // 5 - Perform fetch
         try {
             mysocket::tcp_client* client = new mysocket::tcp_client(components[0], parse_int(components[1]));
 
             client->send(ss.str());
 
             ss.str(client->recv());
-            // ss.clear();
         
 #if LOGGING
         std::cout << ss.str() << std::endl;
@@ -161,7 +188,11 @@ namespace fetch {
             throw fetch::error(0, "Unknown error", e.what());
         }
 
-        // Parse response
+        // Server disconnected
+        if (ss.str().empty())
+            throw fetch::error(0, "Unknown error");
+
+        // 6 - Parse response
         std::string str;
 
         getline(ss, str);
@@ -170,53 +201,47 @@ namespace fetch {
 
         ::tokens(tokens, str);
 
-        // Parse status and status text
+        // 6.1 - Parse status and status text
         size_t      status = stoi(tokens[1]);
         std::string status_text = tokens[2];
 
-        // Merge status_text
+        // 6.1.1 - Merge status_text
         for (size_t i = 3; i < tokens.size(); i++)
             status_text += " " + tokens[i];
 
-        // Parse text
-        size_t content_length = 0;
-
-        while (getline(ss, str)) {
-            transform(str.begin(), str.end(), str.begin(), ::tolower);
-
-            std::vector<std::string> pair;
-
-            split(pair, str, ":");
-
-            if (pair[0] == "content-length") {
-                content_length = stoi(pair[1]);
-                break;
-            }
-        }
-
-        str = ss.str();
-
-        std::string text = str.substr(str.length() - content_length);
-
-        // Parse response headers
-        ss.str(str.substr(0, str.length() - content_length));
-        
-        getline(ss, str);
-
+        // 6.2 - Parse response headers
         std::map<std::string, std::string> _headers;
 
         while (getline(ss, str)) {
-            std::vector<std::string> pair;
+            std::vector<std::string> header;
 
-            split(pair, str, ":");
+            split(header, str, ":");
             
-            // EOF
-            if (pair.size() == 1)
+            // Empty line
+            if (header.size() == 1)
                 break;
 
-            _headers[pair[0]] = trim(pair[1]);
+            // Case-insensitive
+            _headers[tolowers(header[0])] = trim(header[1]);
         }
 
+        // 6.3 - Parse response body
+        std::string        text;
+        std::ostringstream oss;
+
+        while (getline(ss, text))
+            oss << trim_end(text) << "\r\n";
+
+        std::string content_length = _headers["content-length"];
+        size_t      _content_length = content_length.length() ?
+            stoi(content_length) :
+            _headers["transfer-encoding"] == "chunked" ?
+            oss.str().length() :
+            0;
+
+        text = oss.str().substr(0, _content_length);
+
+        // 7 - Send response
         if (status < 200 || status >= 400)
             throw fetch::error(status, status_text, text, _headers);
 

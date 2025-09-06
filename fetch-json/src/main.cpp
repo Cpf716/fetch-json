@@ -24,8 +24,12 @@ int main(int argc, const char * argv[]) {
 
     try {
         auto response = request(headers, url, method, stringify(body));
-
-        cout << stringify(response.json()) << endl;
+        
+        try {
+            cout << stringify(response.json()) << endl;
+        } catch (json::error& e) {
+            cout << response.text() << endl;
+        }
     } catch (fetch::error& e) {
         if (e.text().length())
             throw fetch::error(e.status(), e.text(), e.text(), e.headers());
