@@ -363,6 +363,18 @@ void split(std::vector<std::string>& target, const std::string source, const std
     target.push_back(source.substr(start));
 }
 
+bool starts_with(const std::string text, const std::string pattern) {
+    if (text.length() < pattern.length())
+        return false;
+
+    size_t index = 0;
+
+    while (index < pattern.length() && text[index] == pattern[index])
+        index++;
+
+    return index == pattern.length();
+}
+
 void tokens(std::vector<std::string>& target, const std::string source) {
     size_t start = 0;
     

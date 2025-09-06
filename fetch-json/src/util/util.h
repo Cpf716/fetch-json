@@ -74,6 +74,8 @@ int                      pow2(const int b);
 
 void                     split(std::vector<std::string>& target, const std::string source, const std::string delimeter);
 
+bool                     starts_with(const std::string text, const std::string pattern);
+
 void                     tokens(std::vector<std::string>& target, const std::string source);
 
 std::string              tolowers(const std::string string);
