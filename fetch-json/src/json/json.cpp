@@ -35,6 +35,10 @@ namespace json {
             this->set(value);
     }
 
+    error::error(const std::string what) {
+        this->_what = what;
+    }
+
     array::iterator::iterator(const size_t size, std::vector<object*> values) {
         this->_size = size;
         this->_values = values;
@@ -47,7 +51,8 @@ namespace json {
     }
 
     object::object(std::map<std::string, std::string> options) : object(options["k"], options["v"]) {
-        assert(options["t"].empty() || this->value().empty());
+        if (options["t"].length() && this->value().length())
+            throw json::error("Object cannot have both value and values");
 
         this->_parse(options["t"]);
     }
@@ -170,14 +175,15 @@ namespace json {
             i++;
 
         for (; i < this->_values.size(); i++) {
-            assert(!this->_values[i]->key().empty());
+            if (this->_values[i]->key().empty())
+                throw json::error("undefined");
 
             this->_key_map.push_back({ this->_values[i]->key(), i });
             this->_values[i]->_map_keys();
         }
 
-        // objects cannot have anonymous properties
-        assert(this->type() != object_t || this->size() == 0);
+        if (this->type() == object_t && this->size())
+            throw json::error("Objects cannot have anonymous properties");
 
         // sort by key
         for (int i = 1; i < this->_key_map.size(); i++)
@@ -354,7 +360,8 @@ namespace json {
         }
 
         for (size_t i = 0; i < values.size(); i++) {
-            assert(values[i]->key().empty());
+            if (values[i]->key().length())
+                throw json::error("Cannot splice named properties");
 
             this->_values.insert(this->_values.begin() + start + i, values[i]);
         }
@@ -437,7 +444,8 @@ namespace json {
                 ((array *)this)->get(index)->erase();
             // (named) property
         } else {
-            assert(this->type() == object_t);
+            if (this->type() != object_t)
+                throw json::error("Operation not permitted");
 
             _erase();
         }
@@ -479,7 +487,8 @@ namespace json {
             }
         }
         
-        assert(this->type() == object::object_t);
+        if (this->type() != object::object_t)
+            throw json::error("Operation not permitted");
         
         int index = _find(key);
         
@@ -576,7 +585,8 @@ namespace json {
     }
 
     json::array* array::splice(int start, int delete_count, const std::vector<object*> values) {
-        assert(this->type() == object::array_t);
+        if (this->type() != object::array_t)
+            throw json::error("Operation not permitted");
 
         if (start < 0) {
             start += (int)this->size();
@@ -661,9 +671,12 @@ namespace json {
             
             return value;
         }
-        
-        assert(this->type() == object::object_t);
-        assert(!value->key().empty());
+
+        if (this->type() != object::object_t)
+            throw json::error("Operation not permitted");
+
+        if (value->key().empty())
+            throw json::error("Objects cannot have anonymous properties");
         
         int index = _find(value->key());
         
@@ -698,6 +711,10 @@ namespace json {
 
     std::vector<object*> object::values() {
         return this->_values;
+    }
+
+    const char* error::what() const throw() {
+        return this->_what.c_str();
     }
 
     // Non-Member Functions
@@ -766,7 +783,8 @@ namespace json {
             }
             // target is an object
         } else {
-            assert(target->type() == object::object_t);
+            if (target->type() != object::object_t)
+                throw json::error("Operation not permitted");
             
             // source is an array; assign its items' keys by index
             // Cloning is required to mutate keys
@@ -821,8 +839,11 @@ namespace json {
     }
 
     std::string stringify(object* value) {
-        assert(!value->null());
-        assert(!value->undefined());
+        if (value->null())
+            throw json::error("null");
+
+        if (value->undefined())
+            throw json::error("undefined");
 
         std::string        delimiters[2];
         std::ostringstream ss;
@@ -867,9 +888,7 @@ namespace json {
                 if (value->value() == "null")
                     return "unknown";
 
-                std::string lower_value;
-
-                std::transform(lower_value.begin(), lower_value.end(), lower_value.begin(), ::tolower);
+                std::string lower_value = tolowers(value->value());
 
                 if (lower_value == "true" || lower_value == "false")
                     return "boolean";
