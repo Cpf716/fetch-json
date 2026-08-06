@@ -21,7 +21,7 @@
 namespace mysocket {
     // Typedef
     
-    struct error: public fpp_error {
+    struct error: public fpp::error {
         // Constructors
 
         error(const int errnum);
@@ -35,7 +35,7 @@ namespace mysocket {
         int         _errnum = 0;
     };
 
-    struct tcp_client: public fpp_client {
+    struct tcp_client: public fpp::fpp_client {
         // Constructors
 
         tcp_client(const std::string host, const int port);

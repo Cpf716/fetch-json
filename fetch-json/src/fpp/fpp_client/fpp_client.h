@@ -12,7 +12,7 @@
 
 #include <iostream>
 
-namespace mysocket {
+namespace fpp {
     struct fpp_client {
         virtual void        close() = 0;
 
@@ -21,11 +21,15 @@ namespace mysocket {
         virtual int         send(const std::string message) = 0;
     };
 
-    struct fpp_error: public std::exception {
+    struct error: public std::exception {
+        // Constructors
+        
+        error(const std::string what);
+        
         // Member Fields
 
         const char* what() const throw();
-    protected:
+    private:
         // Member Fields
 
         std::string _what;

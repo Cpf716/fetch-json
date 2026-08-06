@@ -5,12 +5,10 @@
 //  Created by Corey Ferguson on 9/2/25.
 //
 
-#include "cpp17_latch.h"
 #include "fetch.h"
-#include "json.h"
+#include "xml.h"
 
 using namespace fetch;
-using namespace json;
 using namespace std;
 
 // Non-Member Fields
@@ -46,11 +44,6 @@ void set_logging(map<string, string> options) {
             LOG_SOME :
             parse_logging((* it).second)
     );
-
-    it = options.find("--tls");
-
-    if (it != options.end())
-        http.set_logging(LOG_MORE_TLS);
 }
 
 int main(int argc, const char* argv[]) {
@@ -63,12 +56,22 @@ int main(int argc, const char* argv[]) {
     header::map headers;
 
     try {
-        cout << "Fetching all vehicle makes...\n";
+        cout << "Fetching all vehicle makes from the NHTSA...\n";
 
-        auto response = http.get(headers, "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json");
-        auto json = response.json();
-        
-        cout << "Results: " << stringify(json->get("Results"), true) << endl;
+        class url url("https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes");
+
+        url.params()["format"] = string("xml");
+
+        auto response = http.get(headers, url.str());
+
+        std::chrono::time_point start = std::chrono::steady_clock::now();
+
+        auto xml = xml::parse(response.text());
+
+        cout << xml->find("Results")->str() << endl;
+
+        cout << (std::chrono::duration<double>(std::chrono::steady_clock::now() - start)
+            .count() * 1000) << " ms\n";
     } catch (fetch::error& e) {
         throw e;
     }

@@ -7,6 +7,17 @@
 
 #include "util.h"
 
+std::vector<std::string> copy(const std::vector<std::string_view> value) {
+    std::vector<std::string> result;
+
+    result.reserve(value.size());
+
+    for (std::string_view sv: value)
+        result.push_back(std::string(sv));
+
+    return result;
+}
+
 int decimal(const std::string hex) {
     assert(hex.length());
 
@@ -16,9 +27,9 @@ int decimal(const std::string hex) {
         int start = hex[i] >= '0' && hex[i] <= '9' ? 
              48 : 
              hex[i] >= 'A' && hex[i] <= 'Z' ? 
-             55 : hex[i] >= 'a' && hex[i] <= 'z' ? 
-             87 : 
-             INT_MIN;
+                55 : hex[i] >= 'a' && hex[i] <= 'z' ? 
+                    87 : 
+                    INT_MIN;
 
         if (start == INT_MIN)
             return INT_MIN;
@@ -29,95 +40,39 @@ int decimal(const std::string hex) {
     return result;
 }
 
-std::string decode(const std::string string) {
-    if (string.empty())
-        return string;
+std::vector<int> digits(const double number) {
+    std::vector<int> result;
 
-    // Find opening double quotations
-    int l = 0;
-    
-    while (l < string.length() && string[l] != '\"')
-        l++;
-    
-    // None found; return identity
-    if (l == string.length())
-        return string;
+    int whole = number;
 
-    // Copy string
-    int   len = (int)string.length() + 1;
-    char* str = new char[len];
-    
-    strcpy(str, string.c_str());
-    
-    // Erase opening double quotations
-    for (size_t i = l; i < len - 1; i++)
-        std::swap(str[i], str[i + 1]);
-    
-    len--;
-    
-    // Find closing double quotations
-    int r = l;
+    while (whole) {
+        result.push_back(whole % 10);
 
-    while (r < len - 2 && (str[r] == '\\' || str[r + 1] != '\"'))
-        r++;
-
-    if (r < len - 2 && str[r + 1] == '\"')
-        r++;
-
-    if (r < len - 1) {
-        // Erase closing double quotations
-        for (size_t i = r; i < len - 1; i++)
-            std::swap(str[i], str[i + 1]);
-
-        len--;
-
-        // Escape applicable double quotations
-        for (int i = l; i < r - 1; i++) {
-            if (str[i] == '\\' && str[i + 1] == '\"') {
-                for (size_t j = i; j < len - 1; j++)
-                    std::swap(str[j], str[j + 1]);
-                    
-                len--;
-                r--;
-            }
-        }
-
-        // Erase extranous double quotations
-        while (r < len - 2) {
-            if (str[r] == '\\' && str[r + 1] == '\"') {
-                for (size_t j = 0; j < 2; j++) {
-                    for (size_t k = r; k < len - 1; k++)
-                        std::swap(str[k], str[k + 1]);
-                    
-                    len--;
-                }
-            } else
-                r++;
-        }
-        // None found
-    } else {
-        // Escape double quotations
-        for (size_t i = l; i < len - 2; i++) {
-            if (str[i] == '\\' && str[i + 1] == '\"') {
-                for (size_t j = i; j < len - 1; j++)
-                    std::swap(str[j], str[j + 1]);
-                
-                len--;
-                i++;
-            }
-        }
+        whole /= 10;
     }
 
-    std::string result = std::string(str);
-    
-    delete[] str;
-    
+    result.insert(result.begin(), INT_MAX);
+
+    double part = number;
+
+    while (part - (int) part) {
+        result.insert(result.begin(), (
+                (int) (part * 10)
+            ) % 10);
+
+        part *= 10;
+    }
+
+    // Reverse
+    for (int i = 0; i < result.size() / 2; i++)
+        std::swap(result[i], result[result.size() - i - 1]);
+
     return result;
 }
 
-std::string encode(const std::string string) {
+std::string escape(const std::string string) {
     size_t len = string.length() + 1;
-    char*  str = new char[pow2((int) len + 2)];
+    char*  str = new char[pow((int) len + 2)];
     
     strcpy(str, string.c_str());
     
@@ -134,7 +89,7 @@ std::string encode(const std::string string) {
         if (str[i] == '\"') {
             // resize, if required
             if (is_pow(len + 2, 2)) {
-                char* tmp = new char[pow2((int) (len + 2) * 2)];
+                char* tmp = new char[pow((int) (len + 2) * 2)];
 
                 for (size_t j = 0; j < len; j++)
                     tmp[j] = str[j];
@@ -385,14 +340,150 @@ double parse_number(const std::string value) {
     return is_number(value) ? stod(value) : NAN;
 }
 
-int pow2(const int b) {
-    return b == 0 ? 1 : pow(2, ceil(log(b) / log(2)));
+int pow(const int b, int n) {
+    return b == 0 ? 1 : pow(n, ceil(log(b) / log(n)));
 }
+
+std::string replace(const std::string text, const std::string pattern, const std::string new_pattern) {
+    int  len = text.length();
+    char str[std::max(text.length(), text.length() - pattern.length() + new_pattern.length()) + 1];
+
+    strcpy(str, text.c_str());
+
+    int i;
+
+    for (i = 0; i <= len - pattern.length(); i++) {
+        int j = 0;
+
+        while (j < pattern.length() && str[i + j] == pattern[j])
+            j++;
+
+        if (j == pattern.length())
+            break;
+    }
+
+    if (i != len - pattern.length() + 1) {
+        int j;
+
+        for (j = 0; j < pattern.length() && j < new_pattern.length(); j++)
+            str[i + j] = new_pattern[j];
+
+        for (; j < new_pattern.length(); j++) {
+            str[len + 1] = new_pattern[j];
+
+            for (int k = len + 1; k > i + j; k--) 
+                std::swap(str[k], str[k - 1]);
+
+            len++;
+        }
+
+        for (; j < pattern.length(); j++) {
+            for (int k = i + new_pattern.length(); k < len; k++)
+                std::swap(str[k], str[k + 1]);   
+
+            len--;
+        }
+    }
+        
+    return std::string(str);
+}
+
+std::string replace_all(const std::string text, const std::string pattern, const std::string new_pattern) {
+    int  len = text.length();
+    char* str = new char[pow(len, 2) + 1];
+
+    strcpy(str, text.c_str());
+
+    int i;
+
+    for (i = 0; i <= len - pattern.length();) {
+        int j = 0;
+
+        while (j < pattern.length() && str[i + j] == pattern[j])
+            j++;
+
+        if (j == pattern.length()) {
+            int k = 0;
+
+            while (k < (int) new_pattern.length() - (int) pattern.length() && is_pow(k + len, 2))
+                k++;
+
+            // Resize, if required
+            if (k < (int) new_pattern.length() - (int) pattern.length()) {
+                char* temp = new char[pow(k + len, 2) + 1];
+
+                for (int l = 0; l <= len; l++)
+                    temp[l] = str[l];
+
+                delete[] str;
+
+                str = temp;
+            }
+
+            int l;
+
+            // Replace pattern
+            for (l = 0; l < pattern.length() && l < new_pattern.length(); l++)
+                str[i + l] = new_pattern[l];
+
+            // Insert new_pattern as required
+            for (; l < new_pattern.length(); l++) {
+                str[len + 1] = new_pattern[l];
+
+                for (int m = len + 1; m > i + l; m--) 
+                    std::swap(str[m], str[m - 1]);
+
+                len++;
+            }
+
+            // Erase pattern as required
+            for (; l < pattern.length(); l++) {
+                for (int m = i + new_pattern.length(); m < len; m++)
+                    std::swap(str[m], str[m + 1]);   
+
+                len--;
+            }
+
+            i += new_pattern.length();
+        } else
+            i++;
+    }
+        
+    return std::string(str);
+}
+
+std::vector<std::string_view> split(const std::string_view string, const std::string delimeter) {
+    int start = 0;
+    
+    std::vector<std::string_view> result;
+
+    result.reserve(string.length() + 1);
+
+    for (int end = 0; end <= (int) string.length() - (int) delimeter.length(); end++) {
+        int index = 0;
+
+        while (index < delimeter.length() && string[end + index] == delimeter[index])
+            index++;
+        
+        if (index == delimeter.length()) {
+            result.push_back(string.substr(start, end - start));
+
+            start = end + index;
+        }
+    }
+    
+    result.push_back(string.substr(start));
+
+    return result;
+}
+
 
 std::vector<std::string> split(const std::string string, const std::string delimeter) {
     int start = 0;
     
     std::vector<std::string> result;
+
+    result.reserve(string.length() + 1);
 
     for (int end = 0; end <= (int) string.length() - (int) delimeter.length(); end++) {
         int index = 0;
@@ -443,8 +534,31 @@ bool starts_with(const std::string text, const std::string pattern) {
     return index == pattern.length();
 }
 
+std::vector<std::string_view> tokens(const std::string_view string) {
+    std::vector<std::string_view> result;
+
+    result.reserve(string.length() + 1);
+    
+    for (size_t start = 0, end = 0; end < string.length(); end++) {
+        while (end < string.length() && isspace(string[end]))
+            end++;
+        
+        start = end;
+        
+        while (end < string.length() && !isspace(string[end]))
+            end++;
+        
+        if (start != end)
+            result.push_back(string.substr(start, end - start));
+    }
+
+    return result;
+}
+
 std::vector<std::string> tokens(const std::string string) {
     std::vector<std::string> result;
+
+    result.reserve(string.length() + 1);
     
     for (size_t start = 0, end = 0; end < string.length(); end++) {
         while (end < string.length() && isspace(string[end]))
@@ -463,6 +577,8 @@ std::vector<std::string> tokens(const std::string string) {
 }
 
 void tokens(std::vector<std::string>& target, const std::string source) {
+    target.reserve(source.length());
+
     for (size_t start = 0, end = 0; end < source.length(); end++) {
         while (end < source.length() && isspace(source[end]))
             end++;
@@ -521,4 +637,134 @@ std::string trim_start(const std::string string) {
         start++;
         
     return string.substr(start);
+}
+
+std::string truncate(const double number, const int min_prec) {
+    std::vector<int> d = digits(number);
+
+    int i = (int) d.size() - 1;
+
+    // Find trailing nonzero digit
+    while (i >= 0 && d[i] == 0)
+        i--;
+
+    int j = i;
+
+    // Find decimal point
+    while (j >= 0 && d[j] != INT_MAX)
+        j--;
+
+    if (j == -1)
+        j = i;
+
+    std::vector<std::string> result;
+    
+    for (int k = 0; k < j; k++)
+        result.push_back(std::to_string(d[k]));
+
+    if (j != i) {
+        result.push_back(".");
+
+        int k;
+
+        for (k = j + 1; k <= i; k++)
+            result.push_back(std::to_string(d[k]));
+
+        for (; k <= j + min_prec; k++)
+            result.push_back(std::to_string(0));
+
+    } else if (d[i] == -1) {
+        result.push_back(".");
+
+        for (int k = 0; k < min_prec; k++)
+            result.push_back(std::to_string(0));
+    }
+
+    return join(result, "");
+}
+
+std::string unescape(const std::string string) {
+    if (string.empty())
+        return string;
+
+    // Find opening double quotations
+    int l = 0;
+    
+    while (l < string.length() && string[l] != '\"')
+        l++;
+    
+    // None found; return identity
+    if (l == string.length())
+        return string;
+
+    // Copy string
+    int   len = (int)string.length() + 1;
+    char* str = new char[len];
+    
+    strcpy(str, string.c_str());
+    
+    // Erase opening double quotations
+    for (int i = l; i < len - 1; i++)
+        std::swap(str[i], str[i + 1]);
+    
+    len--;
+    
+    // Find closing double quotations
+    int r = l;
+
+    while (r < len - 2 && (str[r] == '\\' || str[r + 1] != '\"'))
+        r++;
+
+    if (r < len - 2 && str[r + 1] == '\"')
+        r++;
+
+    if (r < len - 1) {
+        // Erase closing double quotations
+        for (int i = r; i < len - 1; i++)
+            std::swap(str[i], str[i + 1]);
+
+        len--;
+
+        // Escape applicable double quotations
+        for (int i = l; i < r - 1; i++) {
+            if (str[i] == '\\' && str[i + 1] == '\"') {
+                for (int j = i; j < len - 1; j++)
+                    std::swap(str[j], str[j + 1]);
+                    
+                len--;
+                r--;
+            }
+        }
+
+        // Erase extranous double quotations
+        while (r < len - 2) {
+            if (str[r] == '\\' && str[r + 1] == '\"') {
+                for (int j = 0; j < 2; j++) {
+                    for (int k = r; k < len - 1; k++)
+                        std::swap(str[k], str[k + 1]);
+                    
+                    len--;
+                }
+            } else
+                r++;
+        }
+        // None found
+    } else {
+        // Escape double quotations
+        for (int i = l; i < len - 2; i++) {
+            if (str[i] == '\\' && str[i + 1] == '\"') {
+                for (int j = i; j < len - 1; j++)
+                    std::swap(str[j], str[j + 1]);
+                
+                len--;
+                i++;
+            }
+        }
+    }
+
+    std::string result = std::string(str);
+    
+    delete[] str;
+    
+    return result;
 }

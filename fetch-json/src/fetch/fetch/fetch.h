@@ -8,17 +8,8 @@
 #ifndef fetch_h
 #define fetch_h
 
-#include "dns.h"
-#include "json.h"
-#include "logger.h"
 #include "socket.h"
 #include "tls.h"
-#include <fstream>
-
-using namespace dns;
-using namespace json;
-using namespace mysocket;
-using namespace tls;
 
 namespace fetch {
     // Typedef
@@ -139,10 +130,6 @@ namespace fetch {
         std::string   _status_text;
         std::string   _text;
         trailer::map  _trailers;
-
-        // Constructors
-
-        abstract_response();
     };
 
     class error: public std::exception, public abstract_response {
@@ -159,15 +146,7 @@ namespace fetch {
         const char* what() const throw();
     };
 
-    class response: public abstract_response {
-        // Member Fields
-
-        json::object* _json = NULL;
-
-        // Constructors
-
-        response(const std::string data);
-    public:
+    struct response: public abstract_response {
         // Constructors
 
         response();
@@ -175,33 +154,6 @@ namespace fetch {
         response(const status_code status, const std::string status_text, const std::string text);
 
         response(const status_code status, const std::string status_text, header::map headers = {}, const std::string text = "", trailer::map trailers = {});
-
-        ~response();
-
-        // Member Functions
-
-        json::object* json();
-    };
-
-    class request {
-        // Typedef
-        
-        friend class http_client;
-
-        // Constructors
-
-        request(header::map& headers, const std::string url, const std::string method, const std::string body);
-
-        // Member Fields
-
-        std::string _message;
-        url         _url;
-public:
-        // Member Functions
-
-        std::string message() const;
-
-        url         url();
     };
 
     class http_client {
@@ -213,11 +165,11 @@ public:
             class connection {  
                 // Member Fields
 
-                size_t     _max = INT_MAX;
-                size_t     _number = 0;
-                bool       _released = false;
-                size_t     _timeout = 0;
-                fpp_client* _value = NULL;
+                size_t           _max = INT_MAX;
+                size_t           _number = 0;
+                bool             _released = false;
+                size_t           _timeout = 0;
+                fpp::fpp_client* _value = NULL;
             public:
                 // Typedef
                 
@@ -227,21 +179,21 @@ public:
 
                 connection();
 
-                connection(fpp_client* value);
+                connection(fpp::fpp_client* value);
 
                 // Member Functions
 
-                size_t&     max();
+                size_t&          max();
 
                 // Maintains states between threads and enforces keep-alive max
-                size_t&     number();
+                size_t&          number();
 
                 // Is connection available for reuse?
-                bool&       released();
+                bool&            released();
 
-                size_t&     timeout();
+                size_t&          timeout();
 
-                fpp_client* value() const;
+                fpp::fpp_client* value() const;
             };
 
             friend class http_client;
@@ -252,15 +204,15 @@ public:
 
             // Member Functions
 
-            size_t      close(const std::string host);
+            size_t           close(const std::string host);
             
-            void        config(const std::string host, std::function<void(connection*)> cb);
+            void             config(const std::string host, std::function<void(connection*)> cb);
 
-            fpp_client* get_connection(const std::string host, class url url);
+            fpp::fpp_client* get_connection(const std::string host, class url url);
         
-            void        release(const std::string host, class url url);
+            void             release(const std::string host, class url url);
 
-            void        set_logging(const logging level);
+            void             set_logging(const logging level);
         private:
             // Member Fields
 
@@ -274,6 +226,27 @@ public:
             
             size_t      _close(const std::string host);
         };
+
+        class request {
+            // Typedef
+            
+            friend class http_client;
+
+            // Constructors
+
+            request(header::map& headers, const std::string url, const std::string method, const std::string body);
+
+            // Member Fields
+
+            std::string _message;
+            url         _url;
+
+            // Member Functions
+
+            std::string message() const;
+
+            url         url();
+        };
         
         // Member Fields
 
@@ -285,7 +258,7 @@ public:
 
         // Member Functions
 
-        response _parse_response(fpp_client* client, const std::string data);
+        response _parse_response(fpp::fpp_client* client, const std::string data);
         
         response _request(header::map& headers, const std::string url, const std::string method, const std::string body, const size_t redirects, const size_t max_redirects);
     public:
@@ -301,8 +274,6 @@ public:
         void     get(header::map& headers, const std::string url, std::function<void(response, fetch::error)> cb);
         
         response head(header::map& headers, const std::string url, const std::string body = "");
-
-        response head(header::map& headers, const std::string url, object* body);
         
         int&     max_redirects();
         
@@ -310,23 +281,13 @@ public:
         
         response post(header::map& headers, const std::string url, const std::string body);
 
-        response post(header::map& headers, const std::string url, object* body);
-
         void     post(header::map& headers, const std::string url, const std::string body, std::function<void(response, fetch::error)> cb);
-
-        void     post(header::map& headers, const std::string url, object* body, std::function<void(response, fetch::error)> cb);
         
         response put(header::map& headers, const std::string url, const std::string body);
 
-        response put(header::map& headers, const std::string url, object* body);
-
         void     put(header::map& headers, const std::string url, const std::string body, std::function<void(response, fetch::error)> cb);
 
-        void     put(header::map& headers, const std::string url, object* body, std::function<void(response, fetch::error)> cb);
-
         response request(header::map& headers, const std::string url, const std::string method = "get", const std::string body = "");
-
-        response request(header::map& headers, const std::string url, const std::string method, object* body);
 
         void     request(header::map& headers, const std::string url, const std::string method, const std::string body, std::function<void(response, fetch::error)> cb);
 
