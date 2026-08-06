@@ -20,16 +20,16 @@
 #include "socket.h"
 #include <fcntl.h>
 
-using namespace dns;
-
 namespace tls {
     // Typedef
 
-    struct error: public mysocket::fpp_error {
+    struct error: public fpp::error { 
+        // Constructor
+
         error(const std::string what);
     };
 
-    class tls_client: public mysocket::fpp_client {
+    class tls_client: public fpp::fpp_client {
         // Constructors
 
         ~tls_client();

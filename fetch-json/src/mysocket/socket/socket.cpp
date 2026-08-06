@@ -39,9 +39,8 @@ namespace mysocket {
         this->_file_descriptor = file_descriptor;
     }
 
-    error::error(const int errnum) {
+    error::error(const int errnum) : fpp::error(std::strerror(errnum)) {
         this->_errnum = errnum;
-        this->_what = std::strerror(this->_errnum);
     }
 
     tcp_client::tcp_client(const std::string host, const int port) {
@@ -346,9 +345,5 @@ namespace mysocket {
             throw mysocket::error(errno);
         
         return (int) len;
-    }
-
-    const char* fpp_error::what() const throw() {
-        return this->_what.c_str();
     }
 }

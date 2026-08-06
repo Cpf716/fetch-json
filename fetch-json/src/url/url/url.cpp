@@ -9,12 +9,10 @@
 
 // Non-Member Functions
 
-std::map<std::string, int> protocols() {
-    return {
-        { "http", 80 },
-        { "https", 443 }
-    };
-}
+static const std::map<std::string, int> protocols = {
+    { "http", 80 },
+    { "https", 443 }
+};
 
 // Constructors
 
@@ -127,8 +125,14 @@ url::url(std::string value) {
         throw url::error("Unexpected token : in URL");
 
     this->host() = host[0];
-    this->port() = host.size() == 1 ? portinfo(protocols()[this->protocol()], false) : portinfo(parse_int(host[1]), true);
-    this->target() = value.substr(end);
+    this->port() = host.size() == 1 ? portinfo(
+            (* protocols.find(this->protocol())).second,
+            false
+        ) :
+        portinfo(parse_int(host[1]), true);
+        
+    this->target() = end == value.length() ? "/" :
+        value.substr(end);
 
     if (target.size() == 2)
         this->params() = query_string(target[1]).params();

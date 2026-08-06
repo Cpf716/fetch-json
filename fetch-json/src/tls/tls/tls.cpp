@@ -22,11 +22,9 @@ namespace tls {
         _logger.level() = value;
     }
 
-    // Constructors
+    error::error(const std::string what) : fpp::error(what) { }
 
-    error::error(const std::string what) {
-        this->_what = what;
-    }
+    // Constructors
 
     tls_client::tls_client(const std::string hostname, const int port) {
         const char *pers = "mbedtls_client";
@@ -38,12 +36,18 @@ namespace tls {
         mbedtls_entropy_init(&entropy);
         mbedtls_ctr_drbg_init(&ctr_drbg);
 
-        if (_logger.level() == LOG_MORE_TLS) {
-            mbedtls_debug_set_threshold(4);
-            mbedtls_ssl_conf_dbg(&conf, [](void* ctx, int level, const char* file, int line, const char* str) {
-                _logger.more(trim_end(str));
-            }, NULL);
+        // 1: Error
+        mbedtls_debug_set_threshold(1);
+
+        if (_logger.level() == LOG_MORE) {
+            // 2: State Change
+            mbedtls_debug_set_threshold(2);
         }
+
+        // Define TLS logger callback
+        mbedtls_ssl_conf_dbg(&conf, [](void* ctx, int level, const char* file, int line, const char* str) {
+            _logger.more(trim_end(str));
+        }, NULL);
 
         // Initialize seed for the RNG
         if ((mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *) pers, strlen(pers)))) {
@@ -93,10 +97,10 @@ namespace tls {
             }());
         }
         
-        std::vector<class host> hosts;
+        std::vector<dns::host> hosts;
 
         try {
-            hosts = lookup(hostname);
+            hosts = dns::lookup(hostname);
 
             // Connect to the server
             if ((errnum = mbedtls_net_connect(&server_fd, hosts[0].ip().c_str(), std::to_string(port).c_str(), MBEDTLS_NET_PROTO_TCP))) {

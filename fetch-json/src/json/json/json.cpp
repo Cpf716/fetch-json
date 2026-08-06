@@ -171,7 +171,7 @@ namespace json {
     void __pretty_print(std::ostringstream& ss, object* value, const int index) {
         // Named value
         if (value->key().length())
-            ss << encode(value->key()) << ": ";
+            ss << ::escape(value->key()) << ": ";
 
         if (value->null())
             ss << null();
@@ -261,7 +261,7 @@ namespace json {
     void _stringify(std::ostringstream& ss, object* value, const int index) {
         // Named value
         if (value->key().length())
-            ss << encode(value->key()) << ":";
+            ss << ::escape(value->key()) << ":";
 
         if (value->null())
             ss << null();
@@ -486,8 +486,8 @@ namespace json {
             std::vector<object*> result;
             
             if (!is_number(value->value()))
-                for (char c: decode(value->value()))
-                    result.push_back(new object({{ "value", encode(std::string((char[]){ c, '\0' })) }}));
+                for (char c: ::unescape(value->value()))
+                    result.push_back(new object({{ "value", ::escape(std::string((char[]){ c, '\0' })) }}));
             
             return result;
         }
@@ -649,7 +649,7 @@ namespace json {
                             if (!is_string(source[k]))
                                 throw error("SyntaxError: Unexpected token " + source[k] +  " in JSON: Near " + _trace_back(source, i, start, end));
 
-                            key = decode(source[k]);
+                            key = ::unescape(source[k]);
                             k += 2;
                         }
                         
@@ -678,12 +678,12 @@ namespace json {
                 if (!is_string(source[i]))
                     throw error("SyntaxError: Unexpected token " + source[i] +  " in JSON: Near " + _trace_back(source, i, start, end));
 
-                std::string key = decode(source[i]);
+                std::string key = ::unescape(source[i]);
             
                 i += 2;
                 
                 size_t j = i,
-                       p = 0;
+                        p = 0;
                 
                 do {
                     if (source[j] == "[" || source[j] == "{")

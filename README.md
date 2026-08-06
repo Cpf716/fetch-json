@@ -2,7 +2,7 @@
 
 Thanks for checking out <i>fetch++</i>!
 
-It combines two powerful SDKs <i>fetch</i> and <i>json</i>, equipping C++ developers with a powerful native HTTP client for integration with REST APIs.
+It combines three powerful SDKs, <i>fetch</i>, <i>json</i>, and <i>xml</i>, equipping C++ developers with a powerful native HTTP client for integration with most modern APIs.
 
 # Setup
 1. Open the project in VS Code and navigate to the integrated terminal
@@ -38,14 +38,14 @@ node test-server/src/index.js
 1. Navigate to the first Terminal window
 2. Execute the following command:
 ```
-./fetch-json [-l | --log] # none, some, or more (optional --tls for TLS logging)
+./fetch-json [-l | --log] # none, some, or more
 ```
 
 The test server is for your convenience getting started, however Fetch++ is feature-rich, including robust transport layer security, so you can access almost any resource on the internet.
 
 ## Reference
 
-By default, the http_client executes synchronously. Request headers are mutated by the fetch API, therefore they must be passed by reference. The API can accept either string or JSON arguments.
+By default, the http_client executes synchronously. Request headers are mutated by the fetch API, therefore they must be passed by reference. The API accepts string arguments, which can be derived from serialized JSON or XML data.
 
 ```
 fetch::http_client http;
@@ -56,14 +56,14 @@ std::string url = "http://localhost:8080/api/greeting";
 try {
     http.options(headers, url);
 
-    unique_ptr<object> body = make_unique<object>((vector<object*>) {
-            new object("firstName", encode("fetch++"))
-        });
+    unique_ptr<json::object> body = make_unique<json::object>((std::vector<json::object*>) {
+        new json::object("firstName", escape("fetch++"))
+    });
     
     auto response = http.post(headers, url, body.get());
-    auto json = response.json();
+    auto json = json::parse(response.text());
 
-    logger.info(decode(json->value()));
+    std::cout << unescape(json->value()) << std::endl;
 } catch (fetch::error& e) {
     throw e;
 }
