@@ -38,7 +38,7 @@ node test-server/src/index.js
 1. Navigate to the first Terminal window
 2. Execute the following command:
 ```
-./fetch-json [-l | --log] # none, some, or more (optional --log-tls for TLS logging)
+./fetch-json [-l | --log] # none, some, or more
 ```
 
 The test server is for your convenience getting started, however Fetch++ is feature-rich, including robust transport layer security, so you can access almost any resource on the internet.
